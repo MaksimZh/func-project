@@ -47,18 +47,18 @@ static BoardState ReadMove(const BoardState& bs) {
     return BoardState(board, bs.score());
 }
 
-char RandomSymbol() {
+Element RandomElement() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
     static std::uniform_int_distribution dist(0, 5);
     constexpr char symbols[] = {'A', 'B', 'C', 'D', 'E', 'F'};
-    return symbols[dist(gen)];
+    return Element(symbols[dist(gen)]);
 }
 
 Board RandomBoard(int size) {
     Board board(size);
     for (auto& row : board.cells) {
-        std::generate(row.begin(), row.end(), RandomSymbol);
+        std::generate(row.begin(), row.end(), RandomElement);
     }
     return board;
 }
