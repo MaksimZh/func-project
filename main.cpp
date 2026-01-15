@@ -1,5 +1,6 @@
 #include "board.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -46,11 +47,28 @@ static BoardState ReadMove(const BoardState& bs) {
     return BoardState(board, bs.score());
 }
 
+char RandomSymbol() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution dist(0, 5);
+    constexpr char symbols[] = {'A', 'B', 'C', 'D', 'E', 'F'};
+    return symbols[dist(gen)];
+}
+
+Board RandomBoard(int size) {
+    Board board(size);
+    for (auto& row : board.cells) {
+        std::generate(row.begin(), row.end(), RandomSymbol);
+    }
+    return board;
+}
+
 BoardState InitializeGame() {
-    
+    return BoardState(RandomBoard(8), 0);
 }
 
 int main() {
     BoardState bs = InitializeGame();
+    Draw(bs.board());
     return 0;
 }
