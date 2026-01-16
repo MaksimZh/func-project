@@ -3,4 +3,4 @@ project(MyProject)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(my_program main.cpp)
+add_executable(my_program main.cpp match.cpp)
