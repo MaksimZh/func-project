@@ -91,7 +91,7 @@ std::vector<Match> FindMatches(const Board& board) {
 
 
 std::vector<std::vector<Element>> MarkCellsForRemoval(
-    Board board, std::vector<Match> matches
+    const Board& board, std::vector<Match> matches
 ) {
     std::vector<std::vector<Element>> newCells(board.cells);
 
@@ -112,7 +112,7 @@ std::vector<std::vector<Element>> MarkCellsForRemoval(
 
 
 std::vector<std::vector<Element>> ApplyGravity(
-    std::vector<std::vector<Element>> cells, int size
+    const std::vector<std::vector<Element>>& cells, int size
 ) {
     std::vector<std::vector<Element>> newCells(
         size, std::vector<Element>(size, Element::EMPTY));
@@ -137,7 +137,9 @@ int CalculateScore(int removedCount) {
 }
 
 
-BoardState RemoveMatches(BoardState currentState, std::vector<Match> matches) {
+BoardState RemoveMatches(
+    const BoardState& currentState, std::vector<Match> matches
+) {
     if (matches.empty())
         return currentState;
 

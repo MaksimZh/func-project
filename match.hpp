@@ -35,4 +35,5 @@ private:
 };
 
 std::vector<Match> FindMatches(const Board& board);
-BoardState RemoveMatches(BoardState currentState, std::vector<Match> matches);
+BoardState RemoveMatches(
+    const BoardState& currentState, std::vector<Match> matches);

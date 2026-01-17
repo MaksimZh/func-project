@@ -9,10 +9,14 @@
 #include <vector>
 
 void Draw(const Board& board) {
-    std::cout << "  0 1 2 3 4 5 6 7" << std::endl;
-    for(int i = 0; i < 8; i++) {
+    std::cout << " ";
+    for (int j = 0; j < board.size; j++) {
+        std::cout << " " << j;
+    }
+    std::cout << std::endl;
+    for (int i = 0; i < board.size; i++) {
         std::cout << i << " ";
-        for(int j = 0; j < 8; j++) {
+        for (int j = 0; j < board.size; j++) {
             std::cout << board.cells[i][j].Symbol << " ";
         }
         std::cout << std::endl;
@@ -30,8 +34,8 @@ std::vector<std::string> SplitWords(const std::string& text) {
     return words;
 }
 
-static BoardState ReadMove(const BoardState& bs) {
-    std::cout << ">" << std::endl;
+BoardState ReadMove(const BoardState& bs) {
+    std::cout << "> ";
     std::string input;
     std::getline(std::cin, input);
     if (input == "q") 
@@ -43,9 +47,9 @@ static BoardState ReadMove(const BoardState& bs) {
     int y = std::stoi(coords[0]);
     int x1 = std::stoi(coords[3]);
     int y1 = std::stoi(coords[2]);
-    Element e = board.cells[x][y]; 
-    board.cells[x][y] = board.cells[x1][y1];  
-    board.cells[x1][y1] = e;
+    Element e = board.cells[y][x]; 
+    board.cells[y][x] = board.cells[y1][x1];  
+    board.cells[y1][x1] = e;
     return BoardState(board, bs.Score());
 }
 
@@ -65,11 +69,7 @@ Board RandomBoard(int size) {
     return board;
 }
 
-BoardState InitializeGame() {
-    return BoardState(RandomBoard(8), 0);
-}
-
-BoardState FillEmptySpaces(BoardState currentState) {
+BoardState FillEmptySpaces(const BoardState& currentState) {
     if (currentState.Board().cells.empty())
         return currentState;
 
@@ -88,12 +88,29 @@ BoardState FillEmptySpaces(BoardState currentState) {
         currentState.Score());
 }
 
+BoardState RemoveAllMatches(const BoardState& currentState) {
+    auto matches = FindMatches(currentState.Board());
+    if (matches.empty()) {
+        return BoardState(currentState);
+    }
+    return RemoveAllMatches(
+        FillEmptySpaces(
+            RemoveMatches(currentState, matches)));
+}
+
+BoardState InitializeGame(int size) {
+    return BoardState(
+        RemoveAllMatches(BoardState(RandomBoard(size), 0)).Board(),
+        0);
+}
+
 int main() {
-    BoardState bs = InitializeGame();
-    Draw(bs.Board());
-    bs = RemoveMatches(bs, FindMatches(bs.Board()));
-    Draw(bs.Board());
-    bs = FillEmptySpaces(bs);
-    Draw(bs.Board());
+    BoardState bs = InitializeGame(5);
+    while (true) {
+        std::cout << "Score: " << bs.Score() << std::endl;
+        Draw(bs.Board());
+        bs = RemoveAllMatches(ReadMove(bs));
+        std::cout << std::endl;
+    }
     return 0;
 }
