@@ -104,13 +104,16 @@ BoardState InitializeGame(int size) {
         0);
 }
 
+BoardState ProcessCascade(const BoardState& bs) {
+    std::cout << std::endl << "Score: " << bs.Score() << std::endl;
+    Draw(bs.Board());
+    return RemoveAllMatches(ReadMove(bs));
+}
+
 int main() {
     BoardState bs = InitializeGame(5);
     while (true) {
-        std::cout << "Score: " << bs.Score() << std::endl;
-        Draw(bs.Board());
-        bs = RemoveAllMatches(ReadMove(bs));
-        std::cout << std::endl;
+        bs = ProcessCascade(bs);
     }
     return 0;
 }
