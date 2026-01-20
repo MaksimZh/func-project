@@ -27,12 +27,22 @@ public:
     BoardState(Board board, int score)
     : board_(board), score_(score) {}
 
-    const Board& Board() const {
+    const Board& board() const {
         return board_;
     }
 
-    int Score() const {
+    int score() const {
         return score_;
+    }
+
+    template <typename F>
+    BoardState operator|(F f) const {
+        return f(*this);
+    }
+
+    template <typename F>
+    BoardState& operator|=(F f) {
+        return (*this = *this | f);
     }
 
 private:

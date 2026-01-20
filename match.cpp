@@ -145,20 +145,20 @@ BoardState RemoveMatches(
 
     // Шаг 1: Помечаем ячейки для удаления 
     std::vector<std::vector<Element>> markedCells =
-        MarkCellsForRemoval(currentState.Board(), matches);
+        MarkCellsForRemoval(currentState.board(), matches);
 
     // Шаг 2: Применяем гравитацию
     std::vector<std::vector<Element>> gravityAppliedCells =
-        ApplyGravity(markedCells, currentState.Board().size);
+        ApplyGravity(markedCells, currentState.board().size);
 
     // Шаг 3: Подсчитываем очки
     int removedCount = std::accumulate(
         matches.begin(), matches.end(), 0,
         [](int acc, const Match& m) { return acc + m.Length(); });
-    int newScore = currentState.Score() + CalculateScore(removedCount);
+    int newScore = currentState.score() + CalculateScore(removedCount);
 
     // Возвращаем НОВОЕ состояние
     return BoardState(
-        Board(currentState.Board().size, gravityAppliedCells),
+        Board(currentState.board().size, gravityAppliedCells),
         newScore);
 }

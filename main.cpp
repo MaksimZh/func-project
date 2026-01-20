@@ -41,7 +41,7 @@ BoardState ReadMove(const BoardState& bs) {
     if (input == "q") 
         std::exit(0);  // TODO: find better way to signal program termination
 
-    Board board = bs.Board();
+    Board board = bs.board();
     auto coords = SplitWords(input);
     int x = std::stoi(coords[1]);
     int y = std::stoi(coords[0]);
@@ -50,7 +50,7 @@ BoardState ReadMove(const BoardState& bs) {
     Element e = board.cells[y][x]; 
     board.cells[y][x] = board.cells[y1][x1];  
     board.cells[y1][x1] = e;
-    return BoardState(board, bs.Score());
+    return BoardState(board, bs.score());
 }
 
 Element RandomElement() {
@@ -70,13 +70,13 @@ Board RandomBoard(int size) {
 }
 
 BoardState FillEmptySpaces(const BoardState& currentState) {
-    if (currentState.Board().cells.empty())
+    if (currentState.board().cells.empty())
         return currentState;
 
-    std::vector<std::vector<Element>> newCells = currentState.Board().cells;
+    std::vector<std::vector<Element>> newCells = currentState.board().cells;
 
-    for (int row = 0; row < currentState.Board().size; row++) {
-        for (int col = 0; col < currentState.Board().size; col++) {
+    for (int row = 0; row < currentState.board().size; row++) {
+        for (int col = 0; col < currentState.board().size; col++) {
             if (newCells[row][col].Symbol == Element::EMPTY) {
                 newCells[row][col] = RandomElement();
             }
@@ -84,36 +84,37 @@ BoardState FillEmptySpaces(const BoardState& currentState) {
     }
 
     return BoardState(
-        Board(currentState.Board().size, newCells),
-        currentState.Score());
+        Board(currentState.board().size, newCells),
+        currentState.score());
 }
 
 BoardState RemoveAllMatches(const BoardState& currentState) {
-    auto matches = FindMatches(currentState.Board());
+    auto matches = FindMatches(currentState.board());
     if (matches.empty()) {
         return BoardState(currentState);
     }
-    return RemoveAllMatches(
-        FillEmptySpaces(
-            RemoveMatches(currentState, matches)));
+    return currentState
+        | [&](auto bs) { return RemoveMatches(bs, matches); }
+        | FillEmptySpaces
+        | RemoveAllMatches;
 }
 
 BoardState InitializeGame(int size) {
     return BoardState(
-        RemoveAllMatches(BoardState(RandomBoard(size), 0)).Board(),
+        RemoveAllMatches(BoardState(RandomBoard(size), 0)).board(),
         0);
 }
 
 BoardState ProcessCascade(const BoardState& bs) {
-    std::cout << std::endl << "Score: " << bs.Score() << std::endl;
-    Draw(bs.Board());
-    return RemoveAllMatches(ReadMove(bs));
+    std::cout << std::endl << "Score: " << bs.score() << std::endl;
+    Draw(bs.board());
+    return bs | ReadMove | RemoveAllMatches;
 }
 
 int main() {
     BoardState bs = InitializeGame(5);
     while (true) {
-        bs = ProcessCascade(bs);
+        bs |= ProcessCascade;
     }
     return 0;
 }
