@@ -80,15 +80,36 @@ BoardState FillEmptySpaces(const BoardState& currentState) {
         currentState.score());
 }
 
-BoardState RemoveAllMatches(const BoardState& currentState) {
-    auto matches = FindMatches(currentState.board());
-    if (matches.empty()) {
-        return BoardState(currentState);
+struct BoardStateMatches {
+    BoardState state;
+    std::vector<Match> matches;
+
+    template <typename F>
+    auto operator|(F f) const {
+        return f(*this);
     }
-    return currentState
-        | [&](auto bs) { return RemoveMatches(bs, matches); }
-        | FillEmptySpaces
-        | RemoveAllMatches;
+};
+
+BoardStateMatches CollectMatches(const BoardState& bs) {
+    return BoardStateMatches(bs, FindMatches(bs.board()));
+}
+
+BoardState RemoveCollectedMatches(const BoardStateMatches& bsm) {
+    return RemoveMatches(bsm.state, bsm.matches);
+}
+
+BoardState RemoveAllMatches(const BoardStateMatches& bsm) {
+    return bsm.matches.empty()
+        ? bsm.state
+        : bsm
+            | RemoveCollectedMatches
+            | FillEmptySpaces
+            | CollectMatches
+            | RemoveAllMatches;
+}
+
+BoardState ProcessCascade(const BoardState& bs) {
+    return bs | CollectMatches | RemoveAllMatches;
 }
 
 BoardState ZeroScore(const BoardState& currentState) {
@@ -98,20 +119,16 @@ BoardState ZeroScore(const BoardState& currentState) {
 BoardState InitializeGame(int size) {
     return BoardState(Board(size), 0)
         | FillEmptySpaces
-        | RemoveAllMatches
+        | ProcessCascade
         | ZeroScore;
-}
-
-BoardState ProcessCascade(const BoardState& bs) {
-    std::cout << std::endl << "Score: " << bs.score() << std::endl;
-    Draw(bs.board());
-    return bs | ReadMove | RemoveAllMatches;
 }
 
 int main() {
     BoardState bs = InitializeGame(5);
     while (true) {
-        bs |= ProcessCascade;
+        std::cout << std::endl << "Score: " << bs.score() << std::endl;
+        Draw(bs.board());
+        bs = bs | ReadMove | ProcessCascade;
     }
     return 0;
 }

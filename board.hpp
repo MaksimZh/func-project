@@ -36,7 +36,7 @@ public:
     }
 
     template <typename F>
-    BoardState operator|(F f) const {
+    auto operator|(F f) const {
         return f(*this);
     }
 
