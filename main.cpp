@@ -61,14 +61,6 @@ Element RandomElement() {
     return Element(symbols[dist(gen)]);
 }
 
-Board RandomBoard(int size) {
-    Board board(size);
-    for (auto& row : board.cells) {
-        std::generate(row.begin(), row.end(), RandomElement);
-    }
-    return board;
-}
-
 BoardState FillEmptySpaces(const BoardState& currentState) {
     if (currentState.board().cells.empty())
         return currentState;
@@ -99,10 +91,15 @@ BoardState RemoveAllMatches(const BoardState& currentState) {
         | RemoveAllMatches;
 }
 
+BoardState ZeroScore(const BoardState& currentState) {
+    return BoardState(currentState.board(), 0);
+}
+
 BoardState InitializeGame(int size) {
-    return BoardState(
-        RemoveAllMatches(BoardState(RandomBoard(size), 0)).board(),
-        0);
+    return BoardState(Board(size), 0)
+        | FillEmptySpaces
+        | RemoveAllMatches
+        | ZeroScore;
 }
 
 BoardState ProcessCascade(const BoardState& bs) {
