@@ -1,12 +1,51 @@
 #include "board.hpp"
 #include "match.hpp"
 
-#include <algorithm>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <sstream>
 #include <random>
 #include <vector>
+#include <type_traits>
+
+
+// Конвеерная магия ------------------------------------------------------------
+template <typename T>
+auto piped(void (*f)(const T&)) {
+    return [f](const T& x) -> T { f(x); return x; };
+}
+
+template <typename F>
+requires std::is_invocable_v<F, BoardState>
+auto operator|(const BoardState& bs, F f) {
+    return f(bs);
+}
+
+template <typename F>
+requires std::is_invocable_r_v<Board, F, Board>
+auto operator|(const BoardState& bs, F f) {
+    return BoardState{f(bs.board), bs.score};
+}
+
+template<typename>   constexpr bool is_optional = false;
+template<typename T> constexpr bool is_optional<std::optional<T>> = true;
+
+template <typename T>
+auto ensureOptional(T x) {
+    if constexpr (is_optional<T>) {
+        return x;
+    } else {
+        return std::make_optional(x);
+    }
+}
+
+// Теперь std::optional - это монада.
+template <typename F>
+auto operator|(const std::optional<BoardState>& bs, F f) {
+    return bs ? ensureOptional(bs.value() | f) : std::nullopt;
+}
+// -----------------------------------------------------------------------------
 
 void Draw(const Board& board) {
     std::cout << " ";
@@ -21,7 +60,11 @@ void Draw(const Board& board) {
         }
         std::cout << std::endl;
     }
-    std::cout << std::endl;
+    std::cout << std::endl << std::endl;
+}
+
+void DrawScore(const BoardState& bs) {
+    std::cout << "Score: " << bs.score << std::endl;
 }
 
 std::vector<std::string> SplitWords(const std::string& text) {
@@ -34,14 +77,17 @@ std::vector<std::string> SplitWords(const std::string& text) {
     return words;
 }
 
-BoardState ReadMove(const BoardState& bs) {
+std::optional<BoardState> ReadMove(const BoardState& bs) {
     std::cout << "> ";
     std::string input;
     std::getline(std::cin, input);
-    if (input == "q") 
-        std::exit(0);  // TODO: find better way to signal program termination
+    if (input == "q") {
+        // Вот для этого понадобилась монада.
+        // Теперь выход из игры будет обрабатываться в основном цикле.
+        return std::nullopt;
+    }
 
-    Board board = bs.board();
+    Board board = bs.board;
     auto coords = SplitWords(input);
     int x = std::stoi(coords[1]);
     int y = std::stoi(coords[0]);
@@ -50,7 +96,7 @@ BoardState ReadMove(const BoardState& bs) {
     Element e = board.cells[y][x]; 
     board.cells[y][x] = board.cells[y1][x1];  
     board.cells[y1][x1] = e;
-    return BoardState(board, bs.score());
+    return BoardState{board, bs.score};
 }
 
 Element RandomElement() {
@@ -62,13 +108,13 @@ Element RandomElement() {
 }
 
 BoardState FillEmptySpaces(const BoardState& currentState) {
-    if (currentState.board().cells.empty())
+    if (currentState.board.cells.empty())
         return currentState;
 
-    std::vector<std::vector<Element>> newCells = currentState.board().cells;
+    std::vector<std::vector<Element>> newCells = currentState.board.cells;
 
-    for (int row = 0; row < currentState.board().size; row++) {
-        for (int col = 0; col < currentState.board().size; col++) {
+    for (int row = 0; row < currentState.board.size; row++) {
+        for (int col = 0; col < currentState.board.size; col++) {
             if (newCells[row][col].Symbol == Element::EMPTY) {
                 newCells[row][col] = RandomElement();
             }
@@ -76,8 +122,8 @@ BoardState FillEmptySpaces(const BoardState& currentState) {
     }
 
     return BoardState(
-        Board(currentState.board().size, newCells),
-        currentState.score());
+        Board(currentState.board.size, newCells),
+        currentState.score);
 }
 
 struct BoardStateMatches {
@@ -91,7 +137,7 @@ struct BoardStateMatches {
 };
 
 BoardStateMatches CollectMatches(const BoardState& bs) {
-    return BoardStateMatches(bs, FindMatches(bs.board()));
+    return BoardStateMatches(bs, FindMatches(bs.board));
 }
 
 BoardState RemoveCollectedMatches(const BoardStateMatches& bsm) {
@@ -113,22 +159,24 @@ BoardState ProcessCascade(const BoardState& bs) {
 }
 
 BoardState ZeroScore(const BoardState& currentState) {
-    return BoardState(currentState.board(), 0);
+    return BoardState(currentState.board, 0);
 }
 
 BoardState InitializeGame(int size) {
-    return BoardState(Board(size), 0)
+    return BoardState{Board(size), 0}
         | FillEmptySpaces
         | ProcessCascade
         | ZeroScore;
 }
 
 int main() {
-    BoardState bs = InitializeGame(5);
-    while (true) {
-        std::cout << std::endl << "Score: " << bs.score() << std::endl;
-        Draw(bs.board());
-        bs = bs | ReadMove | ProcessCascade;
+    std::optional<BoardState> bs = InitializeGame(5);
+    while (bs) {
+        bs = bs
+            | piped(DrawScore)
+            | piped(Draw)
+            | ReadMove
+            | ProcessCascade;
     }
     return 0;
 }
